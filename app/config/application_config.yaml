@@ -1,0 +1,309 @@
+
+stock-market :
+  "CDN" : "Canadian"
+  "US": "United States"
+
+#####################################Data Table#######################################
+
+data-table-view-map :
+  "ac-wise-contrib" : "Registered Account Contribution Details"
+  "book-value-recon": "Book Value Reconciliation"
+  "acc-stock-wise-bookvalue" : "Account and Stock wise Book Value"
+  "stock-to-reconcile" : "List of Stock to Reconciliation"
+  "trans-date-by-acc" : "Transaction Included by Account"
+  "acc-mst" : "Account Master"
+  "year-wise-dividend" : "Yearly Dividend Yield"
+
+ac-wise-contrib : "SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_RRSP
+                    UNION
+                    SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_TFSA
+                    ORDER BY TAX_YEAR DESC "
+
+book-value-recon : "SELECT ACC_NO, ACC_TYPE, ACC_OWNER, SYMBOL, CAL_MINUS_CIBC, QTY_DIFF, MARKET, RECON_DATE
+                    FROM PFA_VW_BOOK_VALUE_RECON"
+
+acc-stock-wise-bookvalue :  "SELECT ACC_NO, SYMBOL, MARKET, QTY, BOOK_VALUE FROM PFA_VW_CIBC_BOOKVALUE"
+
+stock-to-reconcile : "SELECT YAHOO_SYMBOL, SYMBOL, MARKET, STOCK_HAS_TRANS, TRANS_MARKET FROM PFA_VW_PORTFOLIO_STOCKS_RECON"
+
+trans-date-by-acc : "SELECT ACC_NO, ACC_TYPE, ACC_OWNER, MAX_TRANS_DATE FROM PFA_VW_TRANS_DATE_CTRL"
+
+acc-mst : "SELECT ACC_ID, ACC_NO, ACC_TYPE, ACC_OWNER, ACC_ACTIVE_DATE FROM PFA_ACCOUNTS"
+
+year-wise-dividend : "SELECT TRAN_YR AS 'Year', ACC_NO AS 'Account', CONVERT(AMT,DECIMAL(8,2)) AS 'Dividend Amount' FROM 
+(SELECT TRAN_YR, 'All Accounts' AS ACC_NO, SUM(AMT) AS AMT FROM 
+(SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * 1.35 ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+WHERE TRANS_TYPE ='Dividend' AND TRANS_DATE<'2023-01-01'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y') , ACC_NO
+UNION
+SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * C.CLOSING_RATE ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+JOIN PFA_EXCHANGE_RATES C ON A.TRANS_DATE = C.TRADE_DATE 
+WHERE TRANS_TYPE ='Dividend'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y'), ACC_NO) A
+GROUP BY TRAN_YR
+UNION
+SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * 1.35 ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+WHERE TRANS_TYPE ='Dividend' AND TRANS_DATE<'2023-01-01'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y') , ACC_NO
+UNION
+SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN 
+AMT * C.CLOSING_RATE  ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+JOIN PFA_EXCHANGE_RATES C ON A.TRANS_DATE = C.TRADE_DATE 
+WHERE TRANS_TYPE ='Dividend'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y'), ACC_NO) X
+ORDER BY Year Desc, Account"
+
+#####################################End: Data Table#######################################
+
+#####################################Start: PortFolio Stock Summary######################################
+
+status-date : "SELECT DISTINCT (DATE_FORMAT(STAT_DATE, '%M %d, %Y')) AS StatusDate FROM pfa_vw_current_statistics"
+
+market-ws-stocks-no-arg : "SELECT SYMBOL AS 'Stock',  SUM(QTY_IN_HAND) as 'Quantity',
+                      CLOSING_PRICE AS 'ClosingPrice', 
+                      CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue', 
+                      CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
+                      CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE))*100),DECIMAL(8,2)) AS 'PctGainLoss'
+                      FROM pfa_vw_current_statistics 
+                      GROUP BY SYMBOL"
+#WHERE SYMBOL IN('AAPL','AMZN', 'SHOP.TO', 'CM.TO')
+market-ws-stocks : "SELECT SYMBOL AS 'Stock',  SUM(QTY_IN_HAND) as 'Quantity',
+                      CLOSING_PRICE AS 'ClosingPrice',
+                      CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue', 
+                      CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
+                      CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE))*100),DECIMAL(8,2)) AS 'PctGainLoss'
+                      FROM pfa_vw_current_statistics WHERE  
+                      ACC_NO IN (%s) AND MARKET IN(%s)
+                      GROUP BY SYMBOL"
+#SYMBOL IN('AAPL','AMZN', 'SHOP.TO', 'CM.TO', 'GEI.TO') AND
+
+acc-list : "SELECT CAST(ACC_NO AS CHAR) AS 'Account', CONCAT(ACC_TYPE, ') - ', ACC_OWNER) AS 'AccountDetails'
+          FROM PFA_ACCOUNTS WHERE DELETE_FLAG ='N'"
+
+#acc-list : "SELECT CAST(ACC_NO AS CHAR) AS 'Account', CONCAT(ACC_TYPE, ') - ', ACC_OWNER) AS 'AccountDetails'
+#       FROM PFA_ACCOUNTS WHERE DELETE_FLAG ='N'
+#UNION
+#SELECT 'All' AS 'Account', 'All Accounts' AS 'AccountDetails'
+#       FROM PFA_ACCOUNTS WHERE DELETE_FLAG ='N'"
+
+
+current-summary-stock-list : "SELECT SYMBOL AS 'Stock', CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', QTY_IN_HAND as 'Quantity', 
+CONVERT(AVG_PRICE,DECIMAL(8,2)) as 'AvgPrice',CONVERT(BOOK_VALUE, DECIMAL(8,2)) AS 'BookValue', 
+CONVERT(GAIN_LOSS, DECIMAL(9,2)) AS 'GainLoss', CONVERT(PCT_GAIN_LOSS,DECIMAL(5,2)) AS 'PctGainLoss' 
+FROM pfa_vw_current_statistics WHERE ACC_NO IN (%s) AND SYMBOL IN(%s)"
+
+current-summary-stock-list-all : "SELECT SYMBOL AS 'Stock',  
+CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', 
+QTY_IN_HAND as 'Quantity', 
+CONVERT(AVG_PRICE,DECIMAL(8,2)) as 'AvgPrice',CONVERT(BOOK_VALUE, DECIMAL(8,2)) AS 'BookValue', 
+CONVERT(GAIN_LOSS, DECIMAL(9,2)) AS 'GainLoss', CONVERT(PCT_GAIN_LOSS,DECIMAL(5,2)) AS 'PctGainLoss' 
+FROM pfa_vw_current_statistics"
+
+current-summary-stock-list-by-acc : "SELECT SYMBOL AS 'Stock', CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', 
+QTY_IN_HAND as 'Quantity', 
+CONVERT(AVG_PRICE,DECIMAL(8,2)) as 'AvgPrice',CONVERT(BOOK_VALUE, DECIMAL(8,2)) AS 'BookValue', 
+CONVERT(GAIN_LOSS, DECIMAL(9,2)) AS 'GainLoss', CONVERT(PCT_GAIN_LOSS,DECIMAL(5,2)) AS 'PctGainLoss' 
+FROM pfa_vw_current_statistics WHERE ACC_NO IN (%s) AND MARKET IN (%s)"
+
+get-acc-market-wise-stock : "SELECT Symbol AS 'Stock' FROM pfa_vw_current_statistics WHERE acc_no 
+                    IN(%s) and MARKET IN(%s)"
+
+overall-summary-cad : "SELECT SUM(A.BOOK_VALUE_CAD) AS BOOK_VALUE_CAD, SUM(A.GAIN_LOSS_CAD) AS GAIN_LOSS_CAD, 
+      (SUM(A.BOOK_VALUE_CAD)+ SUM(A.GAIN_LOSS_CAD)) AS TOTAL, SUM(A.GAIN_LOSS_CAD)/SUM(A.BOOK_VALUE_CAD)*100 AS PCT_PROFIT
+      FROM 
+      (SELECT  STAT_DATE,MARKET,
+      CASE
+          WHEN MARKET ='US' THEN 
+          SUM(BOOK_VALUE) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+          ELSE 
+          SUM(BOOK_VALUE) * 1
+      END AS BOOK_VALUE_CAD,
+      CASE
+          WHEN MARKET ='US' THEN 
+          SUM(GAIN_LOSS) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+          ELSE 
+          SUM(GAIN_LOSS) * 1
+      END AS GAIN_LOSS_CAD
+      FROM PFA_VW_CURRENT_STATISTICS pvcs 
+      GROUP BY MARKET) A "
+
+
+#####################################End: PortFolio Stock Summary#######################################
+
+#####################################Start: Overview Page#######################################
+
+portfolio-allocation-select: "SELECT MARKET, SECTOR, A.SYMBOL, BOOK_VALUE_CAD AS BOOK_VALUE,GAIN_LOSS_CAD AS PROFIT, 
+                                (BOOK_VALUE_CAD+GAIN_LOSS_CAD) AS CLOSING_VALUE FROM 
+                                 (SELECT  STAT_DATE,MARKET, SYMBOL,
+                                 CASE
+                                    WHEN MARKET ='US' THEN 
+                                    SUM(BOOK_VALUE) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+                                    ELSE 
+                                    SUM(BOOK_VALUE) * 1
+                                 END AS BOOK_VALUE_CAD,
+                                 CASE
+                                    WHEN MARKET ='US' THEN 
+                                    SUM(GAIN_LOSS) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+                                    ELSE 
+                                    SUM(GAIN_LOSS) * 1
+                                 END AS GAIN_LOSS_CAD
+                                 FROM PFADev.pfa_vw_current_statistics pvcs
+                                 GROUP BY SYMBOL) A JOIN PFA_VW_PORTFOLIO_STOCKS B ON (A.SYMBOL = B.YAHOO_SYMBOL)"
+
+portfolio-allocation-select-in: "SELECT MARKET, SECTOR, A.SYMBOL, BOOK_VALUE_CAD AS BOOK_VALUE,GAIN_LOSS_CAD AS PROFIT, 
+                                (BOOK_VALUE_CAD+GAIN_LOSS_CAD) AS CLOSING_VALUE FROM 
+                                 (SELECT  STAT_DATE,MARKET, SYMBOL,
+                                 CASE
+                                    WHEN MARKET ='US' THEN 
+                                    SUM(BOOK_VALUE) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+                                    ELSE 
+                                    SUM(BOOK_VALUE) * 1
+                                 END AS BOOK_VALUE_CAD,
+                                 CASE
+                                    WHEN MARKET ='US' THEN 
+                                    SUM(GAIN_LOSS) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+                                    ELSE 
+                                    SUM(GAIN_LOSS) * 1
+                                 END AS GAIN_LOSS_CAD
+                                 FROM PFADev.pfa_vw_current_statistics pvcs WHERE ACC_NO IN(%s) 
+                                 GROUP BY SYMBOL) A JOIN PFA_VW_PORTFOLIO_STOCKS B ON (A.SYMBOL = B.YAHOO_SYMBOL)"
+
+portfolio-allocation-select-in-1: "SELECT MARKET, SECTOR, A.SYMBOL, BOOK_VALUE_CAD AS BOOK_VALUE,GAIN_LOSS_CAD AS PROFIT, 
+                                (BOOK_VALUE_CAD+GAIN_LOSS_CAD) AS CLOSING_VALUE FROM 
+                                 (SELECT  STAT_DATE,MARKET, SYMBOL,
+                                 CASE
+                                    WHEN MARKET ='US' THEN 
+                                    SUM(BOOK_VALUE) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+                                    ELSE 
+                                    SUM(BOOK_VALUE) * 1
+                                 END AS BOOK_VALUE_CAD,
+                                 CASE
+                                    WHEN MARKET ='US' THEN 
+                                    SUM(GAIN_LOSS) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+                                    ELSE 
+                                    SUM(GAIN_LOSS) * 1
+                                 END AS GAIN_LOSS_CAD
+                                 FROM PFADev.pfa_vw_current_statistics pvcs WHERE ACC_NO IN(%s) AND MARKET = %s
+                                 GROUP BY SYMBOL) A JOIN PFA_VW_PORTFOLIO_STOCKS B ON (A.SYMBOL = B.YAHOO_SYMBOL)"
+
+portfolio-stat-history : "SELECT STAT_DATE as 'Date', DAILY_BOOKVALUE AS 'Book Value', PCT_GAIN_LOSS AS 'Pct Profit', DAILY_MARKET_VALUE As Total 
+FROM PFA_VW_OVERALL_DAILY_STATISTICS_HISTORY"
+
+sector-wise-portfolio-allocation-select : "SELECT SECTOR, SUM(BOOK_VALUE) AS BOOK_VALUE, SUM(PROFIT) AS PROFIT,SUM(CLOSING_VALUE) AS CLOSING_VALUE FROM 
+(SELECT MARKET, SECTOR, A.SYMBOL, BOOK_VALUE_CAD AS BOOK_VALUE,GAIN_LOSS_CAD AS PROFIT, 
+        (BOOK_VALUE_CAD+GAIN_LOSS_CAD) AS CLOSING_VALUE FROM 
+         (SELECT  STAT_DATE,MARKET, SYMBOL,
+         CASE
+            WHEN MARKET ='US' THEN 
+            SUM(BOOK_VALUE) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+            ELSE 
+            SUM(BOOK_VALUE) * 1
+         END AS BOOK_VALUE_CAD,
+         CASE
+            WHEN MARKET ='US' THEN 
+            SUM(GAIN_LOSS) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+            ELSE 
+            SUM(GAIN_LOSS) * 1
+         END AS GAIN_LOSS_CAD
+         FROM PFADev.pfa_vw_current_statistics pvcs 
+         GROUP BY SYMBOL) A JOIN PFA_VW_PORTFOLIO_STOCKS B ON (A.SYMBOL = B.YAHOO_SYMBOL)) A
+         GROUP BY SECTOR"
+
+sector-wise-portfolio-allocation-select-in-1: "SELECT SECTOR, SUM(BOOK_VALUE) AS BOOK_VALUE, SUM(PROFIT) AS PROFIT,SUM(CLOSING_VALUE) AS CLOSING_VALUE FROM 
+(SELECT MARKET, SECTOR, A.SYMBOL, BOOK_VALUE_CAD AS BOOK_VALUE,GAIN_LOSS_CAD AS PROFIT, 
+        (BOOK_VALUE_CAD+GAIN_LOSS_CAD) AS CLOSING_VALUE FROM 
+         (SELECT  STAT_DATE,MARKET, SYMBOL,
+         CASE
+            WHEN MARKET ='US' THEN 
+            SUM(BOOK_VALUE) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+            ELSE 
+            SUM(BOOK_VALUE) * 1
+         END AS BOOK_VALUE_CAD,
+         CASE
+            WHEN MARKET ='US' THEN 
+            SUM(GAIN_LOSS) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+            ELSE 
+            SUM(GAIN_LOSS) * 1
+         END AS GAIN_LOSS_CAD
+         FROM PFADev.pfa_vw_current_statistics pvcs WHERE ACC_NO IN(%s) AND MARKET = %s
+         GROUP BY SYMBOL) A JOIN PFA_VW_PORTFOLIO_STOCKS B ON (A.SYMBOL = B.YAHOO_SYMBOL)) A
+         GROUP BY SECTOR"
+
+sector-wise-portfolio-allocation-select-in: "SELECT SECTOR, SUM(BOOK_VALUE) AS BOOK_VALUE, SUM(PROFIT) AS PROFIT,SUM(CLOSING_VALUE) AS CLOSING_VALUE FROM 
+(SELECT MARKET, SECTOR, A.SYMBOL, BOOK_VALUE_CAD AS BOOK_VALUE,GAIN_LOSS_CAD AS PROFIT, 
+        (BOOK_VALUE_CAD+GAIN_LOSS_CAD) AS CLOSING_VALUE FROM 
+         (SELECT  STAT_DATE,MARKET, SYMBOL,
+         CASE
+            WHEN MARKET ='US' THEN 
+            SUM(BOOK_VALUE) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+            ELSE 
+            SUM(BOOK_VALUE) * 1
+         END AS BOOK_VALUE_CAD,
+         CASE
+            WHEN MARKET ='US' THEN 
+            SUM(GAIN_LOSS) * (SELECT CURRENT_RATE FROM PFA_EXCHANGE_RATES WHERE TRADE_DATE = STAT_DATE)
+            ELSE 
+            SUM(GAIN_LOSS) * 1
+         END AS GAIN_LOSS_CAD
+         FROM PFADev.pfa_vw_current_statistics pvcs WHERE ACC_NO IN(%s)
+         GROUP BY SYMBOL) A JOIN PFA_VW_PORTFOLIO_STOCKS B ON (A.SYMBOL = B.YAHOO_SYMBOL)) A
+         GROUP BY SECTOR"
+#####################################End: Overview Page#######################################
+
+######################################Start: Dashboard Entries#########################################
+
+ac-wise-pct-gain-loss-query : "SELECT A.STAT_DATE AS STAT_DATE, A.SYMBOL AS SYMBOL, format(A.PCT_GAIN_LOSS * 100, 2) AS PCT_GAIN_LOSS
+FROM
+    (PFA_DAILY_STATS A
+JOIN PFA_ACCOUNTS B on
+    (A.ACC_ID = B.ACC_ID))
+WHERE A.STAT_DATE BETWEEN %s AND %s AND A.ACC_ID  = %s
+ORDER BY
+	A.STAT_DATE DESC,A.ACC_NO,A.MARKET,A.SYMBOL"
+
+overall-pct-gain-loss-query : "SELECT A.STAT_DATE AS STAT_DATE, A.SYMBOL AS SYMBOL, format(SUM(A.GAIN_LOSS)/SUM(A.BOOK_VALUE) * 100, 2) AS PCT_GAIN_LOSS
+FROM
+    (PFA_DAILY_STATS A
+JOIN PFA_ACCOUNTS B on
+    (A.ACC_ID = B.ACC_ID))
+WHERE
+    A.STAT_DATE BETWEEN %s AND %s
+GROUP BY A.SYMBOL 
+ORDER BY A.STAT_DATE DESC,A.ACC_NO, A.MARKET, A.SYMBOL"
+
+closing-value-query: "SELECT STAT_DATE, SYMBOL, SUM(CLOSING_VALUE) AS CLOSING_VALUE FROM PFA_DAILY_STATS A 
+WHERE A.STAT_DATE BETWEEN %s AND %s
+GROUP BY STAT_DATE, SYMBOL ORDER BY STAT_DATE DESC, SYMBOL ASC"
+
+get-account-query : "SELECT ACC_ID, CONCAT(ACC_NO,' - [', ACC_TYPE,'] - ',ACC_OWNER) AS ACC_DESC,ACC_ACTIVE_DATE  FROM PFA_ACCOUNTS pa
+UNION
+SELECT GROUP_CONCAT(ACC_ID),'All Accounts in Portfolio', CURRENT_DATE() AS ACC_ACTIVE_DATE  FROM PFA_ACCOUNTS
+ORDER BY ACC_ACTIVE_DATE DESC"
+
+
+get-stock-purchase-query : "SELECT ACC_ID, TRANS_DATE, SYMBOL, QTY  FROM PFA_TRANSACTION_DTL ptd WHERE TRANS_TYPE ='Buy'
+ORDER BY ACC_ID, TRANS_DATE DESC"
+
+get-current-portfolio-stock-query : "SELECT DISTINCT (SYMBOL)  FROM PFA_DAILY_STATS
+WHERE  STAT_DATE IN(SELECT MAX(STAT_DATE) FROM PFA_DAILY_STATS pds) AND ACC_ID =%s
+ORDER BY SYMBOL"
+
+######################################End: Dashboard Entries##########################################
+
+######################################Start: RSI Page##########################################
+
+get-portfolio-stocks: "SELECT YAHOO_SYMBOL AS Stock, COMPANY AS Company FROM PFA_VW_PORTFOLIO_STOCKS A order by YAHOO_SYMBOL "
+
+######################################Start: RSI Page##########################################
