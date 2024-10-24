@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from app.routes import users, portfolio_summary_route, items
-from app.db.database import database
+from app.routes import users, pfaAPIRoute, items
+from app.util.db.dbPoolManager import database
+
 from contextlib import asynccontextmanager
 
 app = FastAPI()
@@ -16,7 +17,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(users.router)
-app.include_router(portfolio_summary_route.router)
+app.include_router(pfaAPIRoute.router)
 app.include_router(items.router)
 
 @app.get("/")

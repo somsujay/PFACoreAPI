@@ -1,5 +1,5 @@
 import aiomysql
-from app.util.bootstrap.boot_util import bootstrapper  # Import the loaded settings
+from app.util.bootStrapUtil import bootstrapper  # Import the loaded settings
 
 DATABASE_CONFIG = {
     "host": bootstrapper.db_host,

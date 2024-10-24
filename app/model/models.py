@@ -6,7 +6,7 @@ class User(BaseModel):
     age: int
     city: str
 
-class CrossTabRequest(BaseModel):
+class StockDetailRequest(BaseModel):
     accounts: List[str]
     markets: List[str]
     stocks: List[str]

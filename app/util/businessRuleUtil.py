@@ -1,74 +1,70 @@
 import pandas as pd
-from typing import List, Dict
-import pandas as pd
-#import util1.bootstrap1.boot_util as bu
-#from util1 import common_util as cu
-#from util1.logging_util import logger as lgr
+
+from app.util.loggingUtil import logger as lgr
 
 
+def create_crosstab(stock_details_dict,selected_accounts, selected_market,selected_stocks) -> pd.DataFrame:
 
-# def cross_tab(data: List[Dict], index: str, columns: str, values: str) -> pd.DataFrame:
-#     """
-#     Cross-tabulate data based on given parameters.
-#
-#     :param data: List of dictionaries representing input data.
-#     :param index: Column to group by rows.
-#     :param columns: Column to group by columns.
-#     :param values: Values to aggregate.
-#     :return: DataFrame with cross-tabulation results.
-#     """
-#     df = pd.DataFrame(data)  # Convert the data (list of dicts) to a Pandas DataFrame
-#     crosstab_df = pd.crosstab(index=df[index], columns=df[columns], values=df[values], aggfunc='sum').fillna(0)
-#     return crosstab_df
+    lgr.info(f"create_crosstab function......")
 
+    lgr.info(f"1. update_details_table...............Account {selected_accounts} Market {selected_market} "
+          f"Selected Stock: {selected_stocks}   ")
 
-#dict_app_config = bu.read_app_config()
+    stock_detail_df = pd.DataFrame(stock_details_dict)  # stock_detail_df_g
 
-#def create_crosstab(selected_acc_nos, selected_stocks, selected_market, unconditional):
+    if len(selected_accounts) == 0:
+        print(f"No Accounts are selected........... ")
+        return []  # No selection, return empty data
 
-def create_crosstab(stock_details_df) -> pd.DataFrame:
-
-    #lgr.info(f"create_crosstab function......")
-
-    df =stock_details_df
+    if len(selected_stocks) == 0:
+        stock_detail_df = stock_detail_df[
+            (stock_detail_df['Account'].isin(selected_accounts)) &
+            (stock_detail_df['Market'].isin(selected_market))
+            ]
+    elif len(selected_stocks) > 0:
+        stock_detail_df = stock_detail_df[
+            (stock_detail_df['Account'].isin(selected_accounts)) &
+            (stock_detail_df['Market'].isin(selected_market)) &
+            (stock_detail_df['Stock'].isin(selected_stocks))
+            ]
 
     # Crosstab for Quantity
     qty_sum = pd.crosstab(
-        index=[df['Stock'], df['Account']],
+        index=[stock_detail_df['Stock'], stock_detail_df['Account']],
         columns='Quantity',
-        values=df['Quantity'],
+        values=stock_detail_df['Quantity'],
         aggfunc='sum'
     )
 
     # Crosstab for AvgPrice (mean)
     avg_price_mean = pd.crosstab(
-        index=[df['Stock'], df['Account']],
+        index=[stock_detail_df['Stock'], stock_detail_df['Account']],
         columns='AvgPrice',
-        values=df['AvgPrice'],
+        values=stock_detail_df['AvgPrice'],
         aggfunc='mean'
     )
 
     # Crosstab for BookValue (sum)
     bookvalue_sum = pd.crosstab(
-        index=[df['Stock'], df['Account']],
+        index=[stock_detail_df['Stock'], stock_detail_df['Account']],
         columns='BookValue',
-        values=df['BookValue'],
+        values=stock_detail_df['BookValue'],
         aggfunc='sum'
     )
 
     # Crosstab for GainLoss (sum)
     gainloss_sum = pd.crosstab(
-        index=[df['Stock'], df['Account']],
+        index=[stock_detail_df['Stock'], stock_detail_df['Account']],
         columns='GainLoss',
-        values=df['GainLoss'],
+        values=stock_detail_df['GainLoss'],
         aggfunc='sum'
     )
 
     # Crosstab for PctGainLoss (mean)
     pct_gainloss_mean = pd.crosstab(
-        index=[df['Stock'], df['Account']],
+        index=[stock_detail_df['Stock'], stock_detail_df['Account']],
         columns='PctGainLoss',
-        values=df['PctGainLoss'],
+        values=stock_detail_df['PctGainLoss'],
         aggfunc='mean'
     )
 

@@ -1,11 +1,12 @@
-#application.user : "sujaysom"
-#
-#env-type : "DEV"
-#env-name : "Development"
-#
-##Production Port is 8500
-#dash-port : "8050"
+env:
+  env-type : "DEV"
+  env-name : "Development"
 
+app-param:
+  #Development Port is 8000
+  fastapi-port : "8000"
+  application.user : "sujaysom"
+  pfa-app-root : "/PortFolioAnalytics"
 
 database:
   host: "localhost"
@@ -14,36 +15,7 @@ database:
   password: "passw0rd"
   name: "PFADev"
 
-#pfa-app-root : "/PortFolioAnalytics"
-
-
 logging-param:
   log-location : "logs/"
-  log-config-file-name: "./config/logging_config.cfg"
-
-##############################These are API parameters####################################
-#rapid-api-end-point : "https://currency-conversion-and-exchange-rates.p.rapidapi.com/"
-#rapid-api-header :
-#  #X-RapidAPI-Key : "1a49d8dae7mshe3dcd55c41ac72ap19f507jsnafa5331b4d7b" #--> Sujay Som
-#  X-RapidAPI-Key : "de6980fe2cmshaaf3f904a8acaf9p13d80fjsnee24719b24e3" #--> Sagnik Som
-#
-#  X-RapidAPI-Host : "currency-conversion-and-exchange-rates.p.rapidapi.com"
-#
-#rapid-api-get-summary-end-point : "https://apidojo-yahoo-finance-v1.p.rapidapi.com/stock/v2/get-summary"
-#
-#rapid-api-get-summary-header :
-#  #X-RapidAPI-Key : "1a49d8dae7mshe3dcd55c41ac72ap19f507jsnafa5331b4d7b" #--> Sujay Som
-#  X-RapidAPI-Key : "de6980fe2cmshaaf3f904a8acaf9p13d80fjsnee24719b24e3" #--> Sagnik Som
-#
-#  X-RapidAPI-Host : "apidojo-yahoo-finance-v1.p.rapidapi.com"
-
-
-##########################################################################################
-
-
-
-
-
-##############################These are not use  (Need to verify)####################################
-#file_list_tables : "FileStats"
-
+  log-config-file-name: "./app/config/logging_config.cfg"
+  log-file-name: "pfa-api-log"

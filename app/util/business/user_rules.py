@@ -1,5 +1,5 @@
 from typing import Dict
-from app.models import User
+from app.model.models import User
 
 class UserRules:
     """Business rules related to users."""

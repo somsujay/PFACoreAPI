@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from app.models import User
+from fastapi import APIRouter
+
 #from app.db.database import get_db_pool
-from app.business_rules.user_rules import UserRules  # Import the business rules
 
 router = APIRouter()
 

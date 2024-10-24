@@ -1,18 +1,8 @@
-#from distutils.command.config import config
-
 import yaml
 from pathlib import Path
 
+from pydantic_settings import BaseSettings  # Use pydantic-settings instead of pydantic
 
-# def read_bootstrap_config():
-#     try:
-#         with open('./config/bootstrap_config.yaml', 'r') as f:
-#             bootstrap_config = yaml.safe_load(f)
-#         return bootstrap_config
-#     except:
-#             print('Error Initializing Bootstrap Config File...')
-#
-#
 # def read_app_config():
 #     try:
 #         with open('./config/application_config.yaml', 'r') as f:
@@ -20,10 +10,6 @@ from pathlib import Path
 #         return app_config_dict
 #     except:
 #         print('Error Initializing Application Config File...')
-
-
-from pydantic_settings import BaseSettings  # Use pydantic-settings instead of pydantic
-
 
 class Settings(BaseSettings):
         db_host: str
@@ -33,7 +19,9 @@ class Settings(BaseSettings):
         db_name: str
         log_location: str
         log_config_file_name:  str
-
+        env_type: str
+        env_name: str
+        log_file_name: str
 
 def load_config() -> Settings:
     # Load the YAML file
@@ -49,8 +37,16 @@ def load_config() -> Settings:
         db_user=config["database"]["user"],
         db_password=config["database"]["password"],
         db_name=config["database"]["name"],
+
         log_location=config["logging-param"]["log-location"],
-        log_config_file_name=config["logging-param"]["log-config-file-name"]
+        log_file_name=config["logging-param"]["log-file-name"],
+        log_config_file_name=config["logging-param"]["log-config-file-name"],
+
+        env_type=config["env"]["env-type"],
+        env_name=config["env"]["env-name"],
+
+
+
 
     )
     print("Settings: ", bootstrapper)

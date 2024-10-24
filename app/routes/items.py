@@ -1,12 +1,12 @@
 # app/routes/items.py
 from fastapi import APIRouter, HTTPException
-from app.db import crud
+from app.util.db import dbUtil
 
 router = APIRouter()
 
 @router.get("/items/")
 async def read_items():
-    items = await crud.fetch_items()
+    items = await crud.get_data_from_db()
     return items
 
 @router.post("/items/")

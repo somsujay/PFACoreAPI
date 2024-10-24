@@ -1,9 +1,9 @@
-# app/db/crud.py
+# app/db/dbUtil.py
 from typing import List
-from app.db.database import database
+from app.util.db.dbPoolManager import database
 import aiomysql
 
-async def fetch_items() -> List[dict]:
+async def get_data_from_db() -> List[dict]:
     async with database.pool.acquire() as conn:
         async with conn.cursor(aiomysql.DictCursor) as cursor:
             query = """SELECT SYMBOL AS 'Stock',
@@ -26,6 +26,7 @@ async def fetch_items() -> List[dict]:
 
 
             result = await cursor.fetchall()
+    #print("get_data_from_db-->", result)
     return result
 
 async def create_item(item: dict):
