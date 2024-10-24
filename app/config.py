@@ -12,7 +12,7 @@
 #         db_name: str
 #
 #
-# def load_config() -> Settings:
+# def loadAppConfig() -> Settings:
 #     # Load the YAML file
 #     with open("config.yaml", "r") as file:
 #         config = yaml.safe_load(file)
@@ -32,4 +32,4 @@
 #
 #
 # # Load settings
-# settings = load_config()
+# settings = loadAppConfig()

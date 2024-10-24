@@ -1,19 +1,20 @@
 import pandas as pd
 
+from app.util.db import dbUtil
+from app.util.appUtil import AppSettings, appconfig
 from app.util.loggingUtil import logger as lgr
 
 
-def create_crosstab(stock_details_dict,selected_accounts, selected_market,selected_stocks) -> pd.DataFrame:
+async def getAccWiseStocksDetails(selected_accounts, selected_market, selected_stocks) -> pd.DataFrame:
 
-    lgr.info(f"create_crosstab function......")
-
-    lgr.info(f"1. update_details_table...............Account {selected_accounts} Market {selected_market} "
+    lgr.info(f"...............Account {selected_accounts} Market {selected_market} "
           f"Selected Stock: {selected_stocks}   ")
 
+    stock_details_dict = await dbUtil.get_data_from_db(appconfig.current_summary_stock_list_all)
     stock_detail_df = pd.DataFrame(stock_details_dict)  # stock_detail_df_g
 
     if len(selected_accounts) == 0:
-        print(f"No Accounts are selected........... ")
+        lgr.info(f"No Accounts are selected........... ")
         return []  # No selection, return empty data
 
     if len(selected_stocks) == 0:
@@ -87,11 +88,10 @@ def create_crosstab(stock_details_dict,selected_accounts, selected_market,select
         [(cat, 'Total') for cat in category_totals.index],
         names=['Stock', 'Account']
     )
-    #category_totals['PctGainLoss'] = df.astype('GainLoss', / df['BookValue']
     category_totals['PctGainLoss'] = (pd.to_numeric(category_totals['GainLoss'], errors='coerce')
                                       / pd.to_numeric(category_totals['BookValue'], errors='coerce'))*100
 
-    #lgr.debug(f"category_totals : {category_totals.tail(10)}")
+    lgr.debug(f"category_totals : {category_totals.tail(10)}")
 
     # Concatenate the data without sorting grand totals
     result = pd.concat([crosstab_combined, category_totals]).sort_index(level=0)

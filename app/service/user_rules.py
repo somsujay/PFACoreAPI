@@ -6,7 +6,7 @@ class UserRules:
 
     @staticmethod
     def validate_user_age(user: User) -> bool:
-        """Validate if the user's age meets the required business rule."""
+        """Validate if the user's age meets the required service rule."""
         if user.age < 18:
             return False
         return True

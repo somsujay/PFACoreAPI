@@ -7,7 +7,7 @@ router = APIRouter()
 
 # @router.post("/users/")
 # async def create_user(user: User):
-#     # Validate the user using the business rule
+#     # Validate the user using the service rule
 #     if not UserRules.validate_user_age(user):
 #         raise HTTPException(status_code=400, detail="User must be 18 years or older")
 #
@@ -19,7 +19,7 @@ router = APIRouter()
 #             await cursor.execute(query, (user.name, user.age, user.city))
 #             await conn.commit()
 #
-#     # Use the business rule to generate a profile
+#     # Use the service rule to generate a profile
 #     user_profile = UserRules.generate_user_profile(user)
 #
 #     return {"message": "User created successfully", "profile": user_profile}

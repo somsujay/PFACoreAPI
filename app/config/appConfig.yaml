@@ -3,82 +3,33 @@ stock-market :
   "CDN" : "Canadian"
   "US": "United States"
 
-#####################################Data Table#######################################
-
-data-table-view-map :
-  "ac-wise-contrib" : "Registered Account Contribution Details"
-  "book-value-recon": "Book Value Reconciliation"
-  "acc-stock-wise-bookvalue" : "Account and Stock wise Book Value"
-  "stock-to-reconcile" : "List of Stock to Reconciliation"
-  "trans-date-by-acc" : "Transaction Included by Account"
-  "acc-mst" : "Account Master"
-  "year-wise-dividend" : "Yearly Dividend Yield"
-
-ac-wise-contrib : "SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_RRSP
-                    UNION
-                    SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_TFSA
-                    ORDER BY TAX_YEAR DESC "
-
-book-value-recon : "SELECT ACC_NO, ACC_TYPE, ACC_OWNER, SYMBOL, CAL_MINUS_CIBC, QTY_DIFF, MARKET, RECON_DATE
-                    FROM PFA_VW_BOOK_VALUE_RECON"
-
-acc-stock-wise-bookvalue :  "SELECT ACC_NO, SYMBOL, MARKET, QTY, BOOK_VALUE FROM PFA_VW_CIBC_BOOKVALUE"
-
-stock-to-reconcile : "SELECT YAHOO_SYMBOL, SYMBOL, MARKET, STOCK_HAS_TRANS, TRANS_MARKET FROM PFA_VW_PORTFOLIO_STOCKS_RECON"
-
-trans-date-by-acc : "SELECT ACC_NO, ACC_TYPE, ACC_OWNER, MAX_TRANS_DATE FROM PFA_VW_TRANS_DATE_CTRL"
-
-acc-mst : "SELECT ACC_ID, ACC_NO, ACC_TYPE, ACC_OWNER, ACC_ACTIVE_DATE FROM PFA_ACCOUNTS"
-
-year-wise-dividend : "SELECT TRAN_YR AS 'Year', ACC_NO AS 'Account', CONVERT(AMT,DECIMAL(8,2)) AS 'Dividend Amount' FROM 
-(SELECT TRAN_YR, 'All Accounts' AS ACC_NO, SUM(AMT) AS AMT FROM 
-(SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
-SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * 1.35 ELSE AMT END) AS 'AMT'
-FROM 
-PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
-WHERE TRANS_TYPE ='Dividend' AND TRANS_DATE<'2023-01-01'
-GROUP BY DATE_FORMAT(TRANS_DATE,'%Y') , ACC_NO
-UNION
-SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
-SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * C.CLOSING_RATE ELSE AMT END) AS 'AMT'
-FROM 
-PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
-JOIN PFA_EXCHANGE_RATES C ON A.TRANS_DATE = C.TRADE_DATE 
-WHERE TRANS_TYPE ='Dividend'
-GROUP BY DATE_FORMAT(TRANS_DATE,'%Y'), ACC_NO) A
-GROUP BY TRAN_YR
-UNION
-SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
-SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * 1.35 ELSE AMT END) AS 'AMT'
-FROM 
-PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
-WHERE TRANS_TYPE ='Dividend' AND TRANS_DATE<'2023-01-01'
-GROUP BY DATE_FORMAT(TRANS_DATE,'%Y') , ACC_NO
-UNION
-SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
-SUM(CASE WHEN CURR_OF_AMT ='USD' THEN 
-AMT * C.CLOSING_RATE  ELSE AMT END) AS 'AMT'
-FROM 
-PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
-JOIN PFA_EXCHANGE_RATES C ON A.TRANS_DATE = C.TRADE_DATE 
-WHERE TRANS_TYPE ='Dividend'
-GROUP BY DATE_FORMAT(TRANS_DATE,'%Y'), ACC_NO) X
-ORDER BY Year Desc, Account"
-
-#####################################End: Data Table#######################################
 
 #####################################Start: PortFolio Stock Summary######################################
 
+portfolio-stock-summary:
+  "market-ws-stocks-no-arg" : "SELECT SYMBOL AS 'Stock',  SUM(QTY_IN_HAND) as 'Quantity',
+                              CLOSING_PRICE AS 'ClosingPrice', 
+                              CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue', 
+                              CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
+                              CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE))*100),DECIMAL(8,2)) AS 'PctGainLoss'
+                              FROM pfa_vw_current_statistics GROUP BY SYMBOL"
+  "current-summary-stock-list-all" : "SELECT SYMBOL AS 'Stock',  
+                                      CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', 
+                                      QTY_IN_HAND as 'Quantity', 
+                                      CONVERT(AVG_PRICE,DECIMAL(8,2)) as 'AvgPrice',CONVERT(BOOK_VALUE, DECIMAL(8,2)) AS 'BookValue', 
+                                      CONVERT(GAIN_LOSS, DECIMAL(9,2)) AS 'GainLoss', CONVERT(PCT_GAIN_LOSS,DECIMAL(5,2)) AS 'PctGainLoss' 
+                                      FROM pfa_vw_current_statistics"
+
+  #------------------------------------------------------------------------------------------------------
 status-date : "SELECT DISTINCT (DATE_FORMAT(STAT_DATE, '%M %d, %Y')) AS StatusDate FROM pfa_vw_current_statistics"
 
 market-ws-stocks-no-arg : "SELECT SYMBOL AS 'Stock',  SUM(QTY_IN_HAND) as 'Quantity',
-                      CLOSING_PRICE AS 'ClosingPrice', 
-                      CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue', 
-                      CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
-                      CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE))*100),DECIMAL(8,2)) AS 'PctGainLoss'
-                      FROM pfa_vw_current_statistics 
-                      GROUP BY SYMBOL"
-#WHERE SYMBOL IN('AAPL','AMZN', 'SHOP.TO', 'CM.TO')
+                            CLOSING_PRICE AS 'ClosingPrice', 
+                            CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue', 
+                            CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
+                            CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE))*100),DECIMAL(8,2)) AS 'PctGainLoss'
+                            FROM pfa_vw_current_statistics GROUP BY SYMBOL"
+
 market-ws-stocks : "SELECT SYMBOL AS 'Stock',  SUM(QTY_IN_HAND) as 'Quantity',
                       CLOSING_PRICE AS 'ClosingPrice',
                       CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue', 
@@ -92,24 +43,12 @@ market-ws-stocks : "SELECT SYMBOL AS 'Stock',  SUM(QTY_IN_HAND) as 'Quantity',
 acc-list : "SELECT CAST(ACC_NO AS CHAR) AS 'Account', CONCAT(ACC_TYPE, ') - ', ACC_OWNER) AS 'AccountDetails'
           FROM PFA_ACCOUNTS WHERE DELETE_FLAG ='N'"
 
-#acc-list : "SELECT CAST(ACC_NO AS CHAR) AS 'Account', CONCAT(ACC_TYPE, ') - ', ACC_OWNER) AS 'AccountDetails'
-#       FROM PFA_ACCOUNTS WHERE DELETE_FLAG ='N'
-#UNION
-#SELECT 'All' AS 'Account', 'All Accounts' AS 'AccountDetails'
-#       FROM PFA_ACCOUNTS WHERE DELETE_FLAG ='N'"
-
-
 current-summary-stock-list : "SELECT SYMBOL AS 'Stock', CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', QTY_IN_HAND as 'Quantity', 
 CONVERT(AVG_PRICE,DECIMAL(8,2)) as 'AvgPrice',CONVERT(BOOK_VALUE, DECIMAL(8,2)) AS 'BookValue', 
 CONVERT(GAIN_LOSS, DECIMAL(9,2)) AS 'GainLoss', CONVERT(PCT_GAIN_LOSS,DECIMAL(5,2)) AS 'PctGainLoss' 
 FROM pfa_vw_current_statistics WHERE ACC_NO IN (%s) AND SYMBOL IN(%s)"
 
-current-summary-stock-list-all : "SELECT SYMBOL AS 'Stock',  
-CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', 
-QTY_IN_HAND as 'Quantity', 
-CONVERT(AVG_PRICE,DECIMAL(8,2)) as 'AvgPrice',CONVERT(BOOK_VALUE, DECIMAL(8,2)) AS 'BookValue', 
-CONVERT(GAIN_LOSS, DECIMAL(9,2)) AS 'GainLoss', CONVERT(PCT_GAIN_LOSS,DECIMAL(5,2)) AS 'PctGainLoss' 
-FROM pfa_vw_current_statistics"
+
 
 current-summary-stock-list-by-acc : "SELECT SYMBOL AS 'Stock', CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', 
 QTY_IN_HAND as 'Quantity', 
@@ -307,3 +246,68 @@ ORDER BY SYMBOL"
 get-portfolio-stocks: "SELECT YAHOO_SYMBOL AS Stock, COMPANY AS Company FROM PFA_VW_PORTFOLIO_STOCKS A order by YAHOO_SYMBOL "
 
 ######################################Start: RSI Page##########################################
+
+
+#####################################Data Table#######################################
+
+data-table-view-map :
+  "ac-wise-contrib" : "Registered Account Contribution Details"
+  "book-value-recon": "Book Value Reconciliation"
+  "acc-stock-wise-bookvalue" : "Account and Stock wise Book Value"
+  "stock-to-reconcile" : "List of Stock to Reconciliation"
+  "trans-date-by-acc" : "Transaction Included by Account"
+  "acc-mst" : "Account Master"
+  "year-wise-dividend" : "Yearly Dividend Yield"
+
+ac-wise-contrib : "SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_RRSP
+                    UNION
+                    SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_TFSA
+                    ORDER BY TAX_YEAR DESC "
+
+book-value-recon : "SELECT ACC_NO, ACC_TYPE, ACC_OWNER, SYMBOL, CAL_MINUS_CIBC, QTY_DIFF, MARKET, RECON_DATE
+                    FROM PFA_VW_BOOK_VALUE_RECON"
+
+acc-stock-wise-bookvalue :  "SELECT ACC_NO, SYMBOL, MARKET, QTY, BOOK_VALUE FROM PFA_VW_CIBC_BOOKVALUE"
+
+stock-to-reconcile : "SELECT YAHOO_SYMBOL, SYMBOL, MARKET, STOCK_HAS_TRANS, TRANS_MARKET FROM PFA_VW_PORTFOLIO_STOCKS_RECON"
+
+trans-date-by-acc : "SELECT ACC_NO, ACC_TYPE, ACC_OWNER, MAX_TRANS_DATE FROM PFA_VW_TRANS_DATE_CTRL"
+
+acc-mst : "SELECT ACC_ID, ACC_NO, ACC_TYPE, ACC_OWNER, ACC_ACTIVE_DATE FROM PFA_ACCOUNTS"
+
+year-wise-dividend : "SELECT TRAN_YR AS 'Year', ACC_NO AS 'Account', CONVERT(AMT,DECIMAL(8,2)) AS 'Dividend Amount' FROM 
+(SELECT TRAN_YR, 'All Accounts' AS ACC_NO, SUM(AMT) AS AMT FROM 
+(SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * 1.35 ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+WHERE TRANS_TYPE ='Dividend' AND TRANS_DATE<'2023-01-01'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y') , ACC_NO
+UNION
+SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * C.CLOSING_RATE ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+JOIN PFA_EXCHANGE_RATES C ON A.TRANS_DATE = C.TRADE_DATE 
+WHERE TRANS_TYPE ='Dividend'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y'), ACC_NO) A
+GROUP BY TRAN_YR
+UNION
+SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN AMT * 1.35 ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+WHERE TRANS_TYPE ='Dividend' AND TRANS_DATE<'2023-01-01'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y') , ACC_NO
+UNION
+SELECT DATE_FORMAT(TRANS_DATE,'%Y') AS 'TRAN_YR', ACC_NO,
+SUM(CASE WHEN CURR_OF_AMT ='USD' THEN 
+AMT * C.CLOSING_RATE  ELSE AMT END) AS 'AMT'
+FROM 
+PFA_TRANSACTION_DTL A JOIN PFA_ACCOUNTS B ON A.ACC_ID= B.ACC_ID 
+JOIN PFA_EXCHANGE_RATES C ON A.TRANS_DATE = C.TRADE_DATE 
+WHERE TRANS_TYPE ='Dividend'
+GROUP BY DATE_FORMAT(TRANS_DATE,'%Y'), ACC_NO) X
+ORDER BY Year Desc, Account"
+
+#####################################End: Data Table#######################################
