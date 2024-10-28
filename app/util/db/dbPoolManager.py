@@ -1,5 +1,6 @@
 import aiomysql
-from app.util.bootStrapUtil import bootstrapper  # Import the loaded settings
+from app.util.bootstrap_util import bootstrapper
+from app.util.logging_util import logger as lgr # Import the loaded settings
 
 DATABASE_CONFIG = {
     "host": bootstrapper.db_host,
@@ -15,10 +16,18 @@ class Database:
         self.pool = None
 
     async def init_pool(self):
-        self.pool = await aiomysql.create_pool(**DATABASE_CONFIG)
+        try:
+            self.pool = await aiomysql.create_pool(**DATABASE_CONFIG)
+        except Exception as e:
+            lgr.error('Error Initializing Database Pool....%s', e)
+            raise e
 
     async def close_pool(self):
-        self.pool.close()
-        await self.pool.wait_closed()
+        try:
+            self.pool.close()
+            await self.pool.wait_closed()
+        except Exception as e:
+            lgr.error('Error Closing Database Pool....%s', e)
+            raise e
 
 database = Database()

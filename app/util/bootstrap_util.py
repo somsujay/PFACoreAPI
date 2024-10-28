@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings  # Use pydantic-settings instead of p
 
 # def read_app_config():
 #     try:
-#         with open('./config/appConfig.yaml', 'r') as f:
+#         with open('./config/app_config.yaml', 'r') as f:
 #             app_config_dict = yaml.safe_load(f)
 #         return app_config_dict
 #     except:
@@ -27,7 +27,7 @@ def loadBootStrapConfig() -> Settings:
     # Load the YAML file
     current_path = Path().absolute()
     #print(f"Current path: {current_path}")
-    with open("./app/config/bootstrapConfig.yaml", "r") as file:
+    with open("./app/config/bootstrap_config.yaml", "r") as file:
         config = yaml.safe_load(file)
 
     # Create an instance of Settings populated with YAML data

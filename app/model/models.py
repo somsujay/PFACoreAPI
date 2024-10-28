@@ -10,3 +10,7 @@ class StockDetailRequest(BaseModel):
     accounts: List[str]
     markets: List[str]
     stocks: List[str]
+
+class MarketWsStockRequest(BaseModel):
+    accounts: List[str]
+    markets: List[str]

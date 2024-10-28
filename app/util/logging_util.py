@@ -2,7 +2,7 @@ import logging.config
 import os
 #import util.bootstrap.boot_util as bu
 
-from app.util.bootStrapUtil import bootstrapper  # Import the loaded settings
+from app.util.bootstrap_util import bootstrapper  # Import the loaded settings
 
 try:
     #dict_app_config = bu.read_app_config()

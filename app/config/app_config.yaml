@@ -1,0 +1,60 @@
+
+stock-market :
+  "CDN" : "Canadian"
+  "US": "United States"
+
+
+#####################################Start: PortFolio Stock Summary######################################
+
+portfolio-stock-summary:
+    current-summary-stock-list-all : |
+                SELECT SYMBOL AS 'Stock',  
+                CAST(ACC_NO AS CHAR) As 'Account', MARKET as 'Market', 
+                QTY_IN_HAND as 'Quantity', 
+                CONVERT(AVG_PRICE,DECIMAL(8,2)) as 'AvgPrice',CONVERT(BOOK_VALUE, DECIMAL(8,2)) AS 'BookValue', 
+                CONVERT(GAIN_LOSS, DECIMAL(9,2)) AS 'GainLoss', CONVERT(PCT_GAIN_LOSS,DECIMAL(7,2)) AS 'PctGainLoss' 
+                FROM pfa_vw_current_statistics
+
+    market-ws-stocks: |
+                WITH acc_temp (ACC_NO) AS (
+                    VALUES {p0}
+                ),
+                market_temp (MARKET) AS (
+                    VALUES {p1}
+                )
+                SELECT SYMBOL AS 'Stock',
+                       SUM(QTY_IN_HAND) AS 'Quantity',
+                       CLOSING_PRICE AS 'ClosingPrice',
+                       CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue',
+                       CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
+                       CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE)) * 100), DECIMAL(8,2)) AS 'PctGainLoss'
+                FROM pfa_vw_current_statistics AS stats
+                INNER JOIN acc_temp AS acc ON stats.ACC_NO = acc.ACC_NO
+                INNER JOIN market_temp AS mkt ON stats.MARKET = mkt.MARKET
+                GROUP BY SYMBOL;
+
+
+    #SYMBOL IN('AAPL','AMZN', 'SHOP.TO', 'CM.TO', 'GEI.TO') AND
+
+#  "market-ws-stocks-no-arg" : "SELECT SYMBOL AS 'Stock',  SUM(QTY_IN_HAND) as 'Quantity',
+#                              CLOSING_PRICE AS 'ClosingPrice',
+#                              CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue',
+#                              CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
+#                              CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE))*100),DECIMAL(8,2)) AS 'PctGainLoss'
+#                              FROM pfa_vw_current_statistics GROUP BY SYMBOL"
+
+
+#  data-table-view-map:
+#    ac-wise-contrib:
+#        description: "Registered Account Contribution Details"
+#        query: "SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_RRSP
+#                      UNION
+#                      SELECT ACC_NO, ACC_OWNER, ACC_TYPE, TAX_YEAR, CONTRIBUTE_TO_DATE, YEARLY_LIMIT, LIMIT_LEFT FROM PFA_VW_AC_WISE_YEARLY_CONTRIBUTION_TFSA
+#                      ORDER BY TAX_YEAR DESC"
+#    book-value-recon:
+#        description: "Book Value Reconciliation"
+#        query: "SELECT ACC_NO, ACC_TYPE, ACC_OWNER, SYMBOL, CAL_MINUS_CIBC, QTY_DIFF, MARKET, RECON_DATE
+#                      FROM PFA_VW_BOOK_VALUE_RECON"
+#
+
+
