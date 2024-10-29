@@ -32,6 +32,17 @@ portfolio-stock-summary:
                 INNER JOIN acc_temp AS acc ON stats.ACC_NO = acc.ACC_NO
                 INNER JOIN market_temp AS mkt ON stats.MARKET = mkt.MARKET
                 GROUP BY SYMBOL;
+    market-ws-summary: |
+       WITH market_temp (MARKET) AS (
+                    VALUES {p1}
+                )
+                SELECT
+                    CONVERT(SUM(BOOK_VALUE), DECIMAL(8,2)) AS 'BookValue',
+                    CONVERT(SUM(GAIN_LOSS), DECIMAL(9,2)) AS 'GainLoss',
+                    CONVERT((SUM(BOOK_VALUE)+ SUM(GAIN_LOSS)), DECIMAL(12,2)) AS 'MarketValue',
+                    CONVERT(((SUM(GAIN_LOSS)/SUM(BOOK_VALUE))*100),DECIMAL(8,2)) AS 'PctGainLoss'
+                    FROM pfa_vw_current_statistics AS stats
+                    INNER JOIN market_temp AS mkt ON stats.MARKET = mkt.MARKET
 
 
     #SYMBOL IN('AAPL','AMZN', 'SHOP.TO', 'CM.TO', 'GEI.TO') AND

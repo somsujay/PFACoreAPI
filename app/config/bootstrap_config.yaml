@@ -16,6 +16,6 @@ database:
   name: "PortFolioAnalytics"
 
 logging-param:
-  log-location : "logs/"
+  log-location : "logs/prod/"
   log-config-file-name: "./app/config/logging_config.cfg"
   log-file-name: "pfa-api-log"
