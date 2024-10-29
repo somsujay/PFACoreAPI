@@ -13,7 +13,10 @@ async def get_acc_wise_stocks_details(selected_accounts, selected_market, select
               f"Selected Stock: {selected_stocks}   ")
 
 
-        stock_details_dict = await dbUtil.get_data_from_db(appconfig.current_summary_stock_list_all, None)
+
+#        stock_details_dict = await dbUtil.get_data_from_db(appconfig.current_summary_stock_list_all, None)
+        stock_details_dict = await dbUtil.generate_specific_query(appconfig.current_summary_stock_list_all)
+
         stock_detail_df = pd.DataFrame(stock_details_dict)  # stock_detail_df_g
 
         if len(selected_accounts) == 0:
@@ -120,13 +123,13 @@ async def get_acc_wise_stocks_details(selected_accounts, selected_market, select
 
 async def get_market_wise_stocks(selected_accounts, selected_market) -> Dict:
     try:
-        lgr.info("Som")
-        myquery = create_query(appconfig.market_ws_stocks,selected_accounts,selected_market)
+        #lgr.info("Som")
+        #query = create_query(appconfig.market_ws_stocks,selected_accounts,selected_market)
 
         #lgr.info(f"myquery ==> {myquery}")
-        stock_details_dict = await dbUtil.get_data_from_db(myquery, None)
+        stock_details_dict = await dbUtil.generate_specific_query(appconfig.market_ws_stocks, selected_accounts,selected_market)
 
-        lgr.debug(f"Sujay---> {stock_details_dict}")
+        lgr.debug(f"stock_details_dict---> {stock_details_dict}")
 
         return stock_details_dict
 
@@ -136,52 +139,52 @@ async def get_market_wise_stocks(selected_accounts, selected_market) -> Dict:
         raise e
 
 
-def create_query(query, *params) -> str:
-
-    # User inputs for ACC_NO and MARKET
-    lgr.info(f"Parameters : Count: {len(params)} {params}")
-    i=0
-    query = appconfig.market_ws_stocks
-    #lgr.info(query1)
-    try:
-        for param in params:
-            lgr.info(f"Parameter [{i}] : {param}")
-            if i == 0:
-                v0_tuple_list = [(p,) for p in param]
-                lgr.info(f"v0_tuple_list {v0_tuple_list}")
-                v0_values = ', '.join(f"('{v0_values[0]}')" for v0_values in v0_tuple_list)
-                lgr.debug(f"v0_values : {v0_values}")
-            elif i==1:
-                v1_tuple_list = [(p,) for p in param]
-                lgr.info(f"v1_tuple_list {v1_tuple_list}")
-                v1_values = ', '.join(f"('{v1_values[0]}')" for v1_values in v1_tuple_list)
-                lgr.debug(f"v1_values : {v1_values}")
-                #query1 =  query1.format(p1=v1_values)
-            elif i == 2:
-                v2_tuple_list = [(p,) for p in param]
-                lgr.info(f"v2_tuple_list {v2_tuple_list}")
-                v2_values = ', '.join(f"('{v2_values[0]}')" for v1_values in v2_tuple_list)
-                lgr.debug(f"v2_values : {v2_values}")
-
-            i= i+1
-            lgr.info(f"Value of i {i}")
-
-        if len(params) == 3:
-            query = query.format(p0= v0_values, p1= v1_values, p2 = v2_values)
-            lgr.info(f"query --> {query}")
-        elif len(params) == 2:
-            query = query.format(p0=v0_values, p1=v1_values)
-            lgr.info(f"query --> {query}")
-        elif len(params)==1:
-            query = query.format(p0=v0_values)
-            lgr.info(f"query --> {query}")
-        else:
-            query = query
-
-
-    except Exception as e:
-        lgr.error('Error in param processing....%s', e)
-        raise e
+# def create_query(query, *params) -> str:
+#
+#     # User inputs for ACC_NO and MARKET
+#     lgr.info(f"Parameters : Count: {len(params)} {params}")
+#     i=0
+#     query = appconfig.market_ws_stocks
+#     #lgr.info(query1)
+#     try:
+#         for param in params:
+#             lgr.info(f"Parameter [{i}] : {param}")
+#             if i == 0:
+#                 v0_tuple_list = [(p,) for p in param]
+#                 lgr.info(f"v0_tuple_list {v0_tuple_list}")
+#                 v0_values = ', '.join(f"('{v0_values[0]}')" for v0_values in v0_tuple_list)
+#                 lgr.debug(f"v0_values : {v0_values}")
+#             elif i==1:
+#                 v1_tuple_list = [(p,) for p in param]
+#                 lgr.info(f"v1_tuple_list {v1_tuple_list}")
+#                 v1_values = ', '.join(f"('{v1_values[0]}')" for v1_values in v1_tuple_list)
+#                 lgr.debug(f"v1_values : {v1_values}")
+#                 #query1 =  query1.format(p1=v1_values)
+#             elif i == 2:
+#                 v2_tuple_list = [(p,) for p in param]
+#                 lgr.info(f"v2_tuple_list {v2_tuple_list}")
+#                 v2_values = ', '.join(f"('{v2_values[0]}')" for v1_values in v2_tuple_list)
+#                 lgr.debug(f"v2_values : {v2_values}")
+#
+#             i= i+1
+#             lgr.info(f"Value of i {i}")
+#
+#         if len(params) == 3:
+#             query = query.format(p0= v0_values, p1= v1_values, p2 = v2_values)
+#             lgr.info(f"query --> {query}")
+#         elif len(params) == 2:
+#             query = query.format(p0=v0_values, p1=v1_values)
+#             lgr.info(f"query --> {query}")
+#         elif len(params)==1:
+#             query = query.format(p0=v0_values)
+#             lgr.info(f"query --> {query}")
+#         else:
+#             query = query
+#
+#
+#     except Exception as e:
+#         lgr.error('Error in param processing....%s', e)
+#         raise e
 
     #acc_no_tuple_list = [(acc_no,) for acc_no in params[0]]
 

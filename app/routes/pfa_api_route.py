@@ -45,7 +45,7 @@ async def get_market_ws_stock(request: MarketWsStockRequest):
         selected_accounts = request.accounts
         selected_market = request.markets
 
-        lgr.info(f"accounts : {selected_accounts} markets : {selected_market}")
+        lgr.debug(f"accounts : {selected_accounts} markets : {selected_market}")
 
         # Process the fetched data using cross_tab function
         if selected_accounts:
