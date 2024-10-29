@@ -1,0 +1,21 @@
+env:
+  env-type : "PROD"
+  env-name : "Production"
+
+app-param:
+  #Development Port is 8000
+  fastapi-port : "9000"
+  application.user : "sujaysom"
+  pfa-app-root : "/PortFolioAnalytics"
+
+database:
+  host: "localhost"
+  port: 3306
+  user: "root"
+  password: "passw0rd"
+  name: "PortFolioAnalytics"
+
+logging-param:
+  log-location : "logs/prod/"
+  log-config-file-name: "./app/config/logging_config.cfg"
+  log-file-name: "pfa-api-log"
